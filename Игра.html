@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Шахтёр</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@500;800&display=swap">
+<style>
+:root{
+  --bg:#E9E4DA;--panel:#F8F5EE;--text:#2A2620;--muted:#7B7467;--accent:#C9702B;--accent-text:#fff;--stone:#8D949E;--line:#D6CFC1;--good:#2E8B57;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#1B212B;--panel:#252D3A;--text:#EEE9DF;--muted:#9AA3B2;--accent:#E8924A;--accent-text:#1B1208;--stone:#6B7482;--line:#34404F;--good:#5CD08B;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#1B212B;--panel:#252D3A;--text:#EEE9DF;--muted:#9AA3B2;--accent:#E8924A;--accent-text:#1B1208;--stone:#6B7482;--line:#34404F;--good:#5CD08B;color-scheme:dark}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:Onest,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column}
+.hud{display:flex;justify-content:space-between;align-items:flex-end;padding:14px 16px 8px}
+.money{font-size:36px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.bag{text-align:right;font-weight:800;font-size:17px}
+.bag small{display:block;color:var(--muted);font-weight:500;font-size:13px}
+.meter{width:96px;height:6px;border-radius:3px;background:var(--line);margin-top:4px;margin-left:auto;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);width:0}
+main{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 16px}
+.view[hidden]{display:none}
+.stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:6px}
+.orename{font-size:18px;font-weight:800}
+.orename span{color:var(--muted);font-weight:500;font-size:14px;margin-left:6px}
+.block{position:relative;width:min(64vw,250px);aspect-ratio:1;border:0;padding:0;border-radius:20px;cursor:pointer;
+  background:radial-gradient(circle at 25% 30%,var(--ore) 0 9%,transparent 10%),radial-gradient(circle at 72% 24%,var(--ore) 0 7%,transparent 8%),radial-gradient(circle at 62% 70%,var(--ore) 0 11%,transparent 12%),radial-gradient(circle at 28% 76%,var(--ore) 0 6%,transparent 7%),var(--stone);
+  box-shadow:inset 0 -12px 0 rgba(0,0,0,.2),inset 0 8px 0 rgba(255,255,255,.14),0 6px 0 rgba(0,0,0,.18);touch-action:manipulation}
+.block::after{content:"";position:absolute;inset:0;border-radius:20px;background:repeating-linear-gradient(115deg,transparent 0 16px,rgba(0,0,0,.45) 16px 18px);opacity:var(--crack,0);pointer-events:none}
+.block.hit{animation:hit .12s}
+@keyframes hit{40%{transform:translate(3px,2px) scale(.97)}70%{transform:translate(-3px,0) scale(.98)}}
+.block:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.hp{width:min(64vw,250px);height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.hp i{display:block;height:100%;width:100%;background:var(--good);transform-origin:left}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.chip{background:var(--panel);border-radius:14px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-weight:800}
+.chip small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.chip.zero{opacity:.45}
+.sell{width:100%;border:0;border-radius:16px;padding:15px;font:inherit;font-size:17px;font-weight:800;background:var(--accent);color:var(--accent-text);cursor:pointer}
+.sell:disabled{opacity:.4}
+.fl{position:fixed;font-weight:800;font-size:22px;color:var(--text);pointer-events:none;animation:fl .7s ease-out forwards;text-shadow:0 1px 0 var(--bg)}
+@keyframes fl{to{transform:translateY(-56px);opacity:0}}
+.card{background:var(--panel);border-radius:18px;padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.card .ico{font-size:34px;width:44px;text-align:center}
+.card .info{flex:1;min-width:0}
+.card b{display:block;font-size:16px}
+.card small{color:var(--muted);font-size:13px}
+.btn{border:0;border-radius:12px;padding:10px 14px;font:inherit;font-weight:800;font-size:14px;background:var(--accent);color:var(--accent-text);cursor:pointer;white-space:nowrap}
+.btn:disabled{background:var(--line);color:var(--muted)}
+.btn.eq{background:var(--good);color:#fff}
+nav{display:flex;gap:6px;padding:8px 12px 12px;background:var(--panel)}
+nav button{flex:1;border:0;border-radius:14px;padding:11px 4px;font:inherit;font-weight:800;font-size:14px;background:transparent;color:var(--muted);cursor:pointer}
+nav button.on{background:var(--bg);color:var(--text)}
+#toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:800;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap}
+#toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.block.hit,.fl{animation:none}#toast{transition:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hud">
+    <div class="money" id="money">$0</div>
+    <div class="bag"><small>Рюкзак</small><span id="bagtxt">0 / 14</span><div class="meter"><i id="bagbar"></i></div></div>
+  </div>
+  <main>
+    <section class="view" id="v-mine">
+      <div class="stage">
+        <div class="orename" id="orename"></div>
+        <button class="block" id="block" aria-label="Ломать блок"></button>
+        <div class="hp"><i id="hp"></i></div>
+        <div class="chips" id="chips"></div>
+        <button class="sell" id="sell">Продать всё</button>
+      </div>
+    </section>
+    <section class="view" id="v-picks" hidden></section>
+    <section class="view" id="v-ups" hidden></section>
+  </main>
+  <nav>
+    <button class="on" data-tab="mine">Шахта</button>
+    <button data-tab="picks">Кирки</button>
+    <button data-tab="ups">Улучшения</button>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script>
+(function(){
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { try { tg.ready(); tg.expand(); } catch(e){} }
+  function buzz(t){ try { if (tg && tg.HapticFeedback) { if (t==='ok') tg.HapticFeedback.notificationOccurred('success'); else tg.HapticFeedback.impactOccurred('light'); } } catch(e){} }
+
+  var ORES = [
+    {n:'Камень',  e:'🪨', v:1,   w:60,  hp:8,   c:'#A9B0BA'},
+    {n:'Уголь',   e:'⚫', v:3,   w:25,  hp:14,  c:'#2F343C'},
+    {n:'Железо',  e:'🔩', v:9,   w:12,  hp:26,  c:'#D1A98A'},
+    {n:'Золото',  e:'🪙', v:30,  w:6,   hp:45,  c:'#F2C230'},
+    {n:'Аметист', e:'🔮', v:110, w:2.5, hp:80,  c:'#A06BE0'},
+    {n:'Алмаз',   e:'💎', v:400, w:1,   hp:140, c:'#4FD6FF'}
+  ];
+  var PICKS = [
+    {n:'Деревянная',   e:'🪵', dmg:1,   luck:0, price:0},
+    {n:'Каменная',     e:'🪨', dmg:2.5, luck:0, price:80},
+    {n:'Железная',     e:'⛏️', dmg:6,   luck:1, price:700},
+    {n:'Золотая',      e:'🟡', dmg:15,  luck:2, price:7000},
+    {n:'Алмазная',     e:'💠', dmg:40,  luck:3, price:80000},
+    {n:'Изумрудная',   e:'🟢', dmg:110, luck:5, price:900000},
+    {n:'Космическая',  e:'🌠', dmg:320, luck:8, price:12000000}
+  ];
+  var UPS = [
+    {id:'pow',  n:'Сила',          d:'+25% к урону кирки', base:40,  g:1.7},
+    {id:'bag',  n:'Рюкзак',        d:'+6 мест',            base:60,  g:1.8},
+    {id:'luck', n:'Удача',         d:'Редкие руды чаще',   base:120, g:1.9},
+    {id:'sell', n:'Цена продажи',  d:'+15% к цене',        base:200, g:2.0}
+  ];
+
+  var S;
+  try { S = JSON.parse(localStorage.getItem('miner-save') || 'null'); } catch(e){ S = null; }
+  if (!S) S = {money:0, inv:[0,0,0,0,0,0], owned:[0], eq:0, up:{pow:0,bag:0,luck:0,sell:0}};
+  function save(){ try { localStorage.setItem('miner-save', JSON.stringify(S)); } catch(e){} }
+
+  function fmt(n){
+    if (n < 1000) return String(Math.floor(n));
+    var u = ['K','M','B','T','Qa'], i = -1;
+    while (n >= 1000 && i < u.length - 1) { n /= 1000; i++; }
+    return (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : String(Math.floor(n))) + u[i];
+  }
+  function cap(){ return 14 + 6 * S.up.bag; }
+  function used(){ return S.inv.reduce(function(a,b){ return a + b; }, 0); }
+  function dmg(){ return PICKS[S.eq].dmg * (1 + 0.25 * S.up.pow); }
+  function luck(){ return PICKS[S.eq].luck + S.up.luck; }
+  function sellMult(){ return 1 + 0.15 * S.up.sell; }
+  function upCost(u){ return Math.floor(u.base * Math.pow(u.g, S.up[u.id])); }
+
+  function rollOre(){
+    var L = luck(), ws = ORES.map(function(o,i){ return o.w * (1 + 0.2 * L * i); });
+    var r = Math.random() * ws.reduce(function(a,b){ return a + b; }, 0);
+    for (var i = 0; i < ws.length; i++) { r -= ws[i]; if (r <= 0) return i; }
+    return 0;
+  }
+  var blk;
+  function newBlock(){ var i = rollOre(); blk = {i:i, hp:ORES[i].hp, max:ORES[i].hp}; }
+  newBlock();
+
+  var $ = function(id){ return document.getElementById(id); };
+  var blockEl = $('block'), toastT;
+  function toast(t){ var el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ el.classList.remove('on'); }, 1400); }
+
+  function drawBlock(){
+    var o = ORES[blk.i], r = blk.hp / blk.max;
+    blockEl.style.setProperty('--ore', o.c);
+    blockEl.style.setProperty('--crack', String(1 - r));
+    $('hp').style.transform = 'scaleX(' + Math.max(0, r) + ')';
+    $('orename').innerHTML = o.e + ' ' + o.n + '<span>$' + fmt(o.v * sellMult()) + '</span>';
+  }
+  function drawHud(){
+    $('money').textContent = '$' + fmt(S.money);
+    var u = used(), c = cap();
+    $('bagtxt').textContent = u + ' / ' + c;
+    $('bagbar').style.width = Math.min(100, u / c * 100) + '%';
+    $('sell').disabled = u === 0;
+    $('chips').innerHTML = ORES.map(function(o,i){
+      return '<div class="chip' + (S.inv[i] ? '' : ' zero') + '"><span style="font-size:22px">' + o.e + '</span><div>' + S.inv[i] + '<small>$' + fmt(o.v * sellMult()) + '</small></div></div>';
+    }).join('');
+  }
+  function drawPicks(){
+    $('v-picks').innerHTML = PICKS.map(function(p,i){
+      var owned = S.owned.indexOf(i) >= 0, btn;
+      if (S.eq === i) btn = '<button class="btn eq" disabled>Надета</button>';
+      else if (owned) btn = '<button class="btn" data-eq="' + i + '">Надеть</button>';
+      else btn = '<button class="btn" data-buy="' + i + '"' + (S.money < p.price ? ' disabled' : '') + '>$' + fmt(p.price) + '</button>';
+      return '<div class="card"><div class="ico">' + p.e + '</div><div class="info"><b>' + p.n + '</b><small>Урон ' + fmt(p.dmg) + ' · Удача +' + p.luck + '</small></div>' + btn + '</div>';
+    }).join('');
+  }
+  function drawUps(){
+    $('v-ups').innerHTML = UPS.map(function(u){
+      var c = upCost(u);
+      return '<div class="card"><div class="info"><b>' + u.n + ' · ур. ' + S.up[u.id] + '</b><small>' + u.d + '</small></div><button class="btn" data-up="' + u.id + '"' + (S.money < c ? ' disabled' : '') + '>$' + fmt(c) + '</button></div>';
+    }).join('');
+  }
+  function drawAll(){ drawHud(); drawBlock(); drawPicks(); drawUps(); }
+
+  function floatText(x, y, t){
+    var f = document.createElement('div');
+    f.className = 'fl'; f.textContent = t; f.style.left = (x - 12) + 'px'; f.style.top = (y - 30) + 'px';
+    document.body.appendChild(f);
+    setTimeout(function(){ f.remove(); }, 720);
+  }
+
+  blockEl.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    if (used() >= cap()) { toast('Рюкзак полон: продай добычу'); return; }
+    var d = dmg();
+    blk.hp -= d;
+    floatText(e.clientX, e.clientY, '-' + fmt(d));
+    blockEl.classList.remove('hit'); void blockEl.offsetWidth; blockEl.classList.add('hit');
+    buzz('tap');
+    if (blk.hp <= 0) {
+      S.inv[blk.i]++;
+      floatText(e.clientX, e.clientY - 28, ORES[blk.i].e);
+      newBlock(); drawHud(); save();
+    }
+    drawBlock();
+  });
+
+  $('sell').addEventListener('click', function(){
+    var t = 0;
+    for (var i = 0; i < ORES.length; i++) { t += S.inv[i] * ORES[i].v; S.inv[i] = 0; }
+    t = Math.floor(t * sellMult());
+    S.money += t;
+    toast('Продано на $' + fmt(t));
+    buzz('ok'); drawAll(); save();
+  });
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.buy !== undefined) {
+      var i = +b.dataset.buy, p = PICKS[i];
+      if (S.money >= p.price) { S.money -= p.price; S.owned.push(i); S.eq = i; toast(p.n + ' кирка куплена'); buzz('ok'); }
+    } else if (b.dataset.eq !== undefined) {
+      S.eq = +b.dataset.eq;
+    } else if (b.dataset.up !== undefined) {
+      var u = UPS.filter(function(x){ return x.id === b.dataset.up; })[0], c = upCost(u);
+      if (S.money >= c) { S.money -= c; S.up[u.id]++; toast(u.n + ': уровень ' + S.up[u.id]); buzz('ok'); }
+    } else if (b.dataset.tab) {
+      ['mine','picks','ups'].forEach(function(t){ $('v-' + t).hidden = t !== b.dataset.tab; });
+      document.querySelectorAll('nav button').forEach(function(n){ n.classList.toggle('on', n === b); });
+      return;
+    } else return;
+    drawAll(); save();
+  });
+
+  drawAll();
+})();
+</script>
+</body>
+</html>
