@@ -54,7 +54,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .btn:disabled{background:var(--line);color:var(--muted)}
 .btn.eq{background:var(--good);color:#fff}
 nav{display:flex;gap:4px;padding:8px 8px 12px;background:var(--panel)}
-nav button{flex:1;border:0;border-radius:14px;padding:11px 2px;font:inherit;font-weight:800;font-size:13px;background:transparent;color:var(--muted);cursor:pointer}
+nav button{flex:1;border:0;border-radius:14px;padding:11px 2px;font:inherit;font-weight:800;font-size:12px;background:transparent;color:var(--muted);cursor:pointer}
 nav button.on{background:var(--bg);color:var(--text)}
 #toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:800;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap}
 #toast.on{opacity:1}
@@ -69,6 +69,16 @@ nav button.on{background:var(--bg);color:var(--text)}
 .day{background:var(--bg);border-radius:12px;padding:8px 2px;font-size:13px}
 .day b{display:block;font-size:14px}.day small{color:var(--muted)}
 .day.done{opacity:.55}.day.cur{outline:2px solid var(--accent)}
+.sec{font-weight:800;margin:14px 2px 8px;font-size:15px}
+.bar2{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar2 i{display:block;height:100%;background:var(--accent)}
+.block.boss{outline:4px solid #D63A3A;outline-offset:3px}
+.block.mut3{box-shadow:0 0 0 4px #F2C230,0 0 24px #F2C230}
+.block.mut10{animation:rb 2s linear infinite}
+@keyframes rb{to{filter:hue-rotate(360deg)}}
+.pt{position:fixed;pointer-events:none;font-size:16px;animation:pt .6s ease-out forwards}
+@keyframes pt{to{transform:translate(var(--dx),var(--dy));opacity:0}}
+@media (prefers-reduced-motion: reduce){.pt{display:none}}
 </style>
 </head>
 <body>
@@ -93,6 +103,7 @@ nav button.on{background:var(--bg);color:var(--text)}
     <section class="view" id="v-ups" hidden></section>
     <section class="view" id="v-pets" hidden></section>
     <section class="view" id="v-world" hidden></section>
+    <section class="view" id="v-goals" hidden></section>
   </main>
   <nav>
     <button class="on" data-tab="mine">Шахта</button>
@@ -100,6 +111,7 @@ nav button.on{background:var(--bg);color:var(--text)}
     <button data-tab="ups">Прокачка</button>
     <button data-tab="pets">Питомцы</button>
     <button data-tab="world">Мир</button>
+    <button data-tab="goals">Цели</button>
   </nav>
 </div>
 <div class="modal" id="modal" hidden><div class="panel"><h2 id="mt"></h2><div id="mb"></div><button class="sell" id="mbtn">Ок</button></div></div>
@@ -109,7 +121,7 @@ nav button.on{background:var(--bg);color:var(--text)}
 (function(){
   var tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { try { tg.ready(); tg.expand(); } catch(e){} }
-  function buzz(t){ try { if (tg && tg.HapticFeedback) { if (t==='ok') tg.HapticFeedback.notificationOccurred('success'); else tg.HapticFeedback.impactOccurred('light'); } } catch(e){} }
+  function buzz(t){ try { if (tg && tg.HapticFeedback && S.vib !== false) { if (t==='ok') tg.HapticFeedback.notificationOccurred('success'); else tg.HapticFeedback.impactOccurred('light'); } } catch(e){} }
 
   var AC = null;
   function tone(f, d, type, v, delay){
@@ -140,18 +152,21 @@ nav button.on{background:var(--bg);color:var(--text)}
   ];
   var ZONES = [
     {n:'Карьер',e:'⛰️',hp:1,v:1,price:0},{n:'Глубокая пещера',e:'🕳️',hp:4,v:3,price:2500},
-    {n:'Лавовые недра',e:'🌋',hp:16,v:10,price:150000},{n:'Кристальная бездна',e:'💠',hp:64,v:40,price:8e6}
+    {n:'Лавовые недра',e:'🌋',hp:16,v:10,price:150000},{n:'Кристальная бездна',e:'💠',hp:64,v:40,price:8e6},
+    {n:'Ледяные чертоги',e:'🧊',hp:256,v:150,price:4e8},{n:'Небесные рудники',e:'☁️',hp:1000,v:600,price:2e10},{n:'Ядро мира',e:'🌍',hp:4000,v:2500,price:1e12}
   ];
   var PICKS = [
     {n:'Деревянная',e:'🪵',dmg:1,luck:0,price:0},{n:'Каменная',e:'🪨',dmg:2.5,luck:0,price:80},
     {n:'Железная',e:'⛏️',dmg:6,luck:1,price:700},{n:'Золотая',e:'🟡',dmg:15,luck:2,price:7000},
     {n:'Алмазная',e:'💠',dmg:40,luck:3,price:80000},{n:'Изумрудная',e:'🟢',dmg:110,luck:5,price:900000},
     {n:'Космическая',e:'🌠',dmg:320,luck:8,price:12e6},{n:'Мифриловая',e:'🔷',dmg:900,luck:11,price:2e8},
-    {n:'Небесная',e:'☄️',dmg:3000,luck:15,price:3e9}
+    {n:'Небесная',e:'☄️',dmg:3000,luck:15,price:3e9},
+    {n:'Квантовая',e:'⚛️',dmg:12000,luck:20,price:8e10},{n:'Божественная',e:'✨',dmg:60000,luck:28,price:4e12}
   ];
   var PETS = [
     {n:'Крот',e:'🐹',k:0.4,price:3000},{n:'Бобр',e:'🦫',k:1,price:60000},
-    {n:'Дракончик',e:'🐲',k:2.5,price:2e6},{n:'Голем',e:'🗿',k:7,price:1e8}
+    {n:'Дракончик',e:'🐲',k:2.5,price:2e6},{n:'Голем',e:'🗿',k:7,price:1e8},
+    {n:'Феникс',e:'🦅',k:20,price:5e9},{n:'Левиафан',e:'🐋',k:60,price:3e11}
   ];
   var UPS = [
     {id:'pow',n:'Сила',d:'+25% к урону',base:40,g:1.7},
@@ -160,14 +175,22 @@ nav button.on{background:var(--bg);color:var(--text)}
     {id:'sell',n:'Цена продажи',d:'+15% к цене',base:200,g:2},
     {id:'crit',n:'Критический удар',d:'x3 урона',base:150,g:1.9,max:20}
   ];
-  var REB_LVL = 12;
+  var REB_LVL = 25;
 
   var S = {money:0,inv:[0,0,0,0,0,0],owned:[0],eq:0,up:{pow:0,bag:0,luck:0,sell:0,crit:0},zone:0,zmax:0,lvl:1,xp:0,reb:0,pets:[],pet:-1,snd:true,last:0,streak:0,claimed:''};
   try {
     var sv = JSON.parse(localStorage.getItem('miner-save2') || 'null');
     if (sv) { var up = Object.assign({}, S.up, sv.up); Object.assign(S, sv); S.up = up; }
   } catch(e){}
-  function save(){ S.last = Date.now(); try { localStorage.setItem('miner-save2', JSON.stringify(S)); } catch(e){} }
+  var bossBlk = 0, bossT = Date.now(), noSave = false, lastCloud = 0, grAsk = false, rstAsk = false, goalTab = 0;
+  function save(){ if (noSave) return; S.last = Date.now(); if (Date.now() - lastCloud > 20000) { lastCloud = Date.now(); cloudSave(); } try { localStorage.setItem('miner-save2', JSON.stringify(S)); } catch(e){} }
+
+  S.st = Object.assign({blocks:0,crits:0,sells:0,diamonds:0,earned:0,maxHit:0,quests:0,maxLvl:1,maxZone:0}, S.st || {});
+  if (!S.ach) S.ach = [];
+  if (!S.q) S.q = {date:'',list:[]};
+  S.pl = S.pl || {}; S.bo = Object.assign({dmg:0,luck:0}, S.bo || {}); if (S.skin == null) S.skin = 0;
+  S.idx = S.idx || []; S.sk = Object.assign({dmg:0,sell:0,luck:0,bag:0,pet:0}, S.sk || {}); S.en = Object.assign({dbl:0,xpb:0,auto:0}, S.en || {}); S.hm = S.hm || [0,0,0]; if (!S.wheel) S.wheel = '';
+  S.pc = S.pc || {}; S.ps = S.ps || {}; S.gr = S.gr || 0;
 
   function fmt(n){
     if (n < 1000) return String(Math.floor(n));
@@ -175,15 +198,18 @@ nav button.on{background:var(--bg);color:var(--text)}
     while (n >= 1000 && i < u.length - 1) { n /= 1000; i++; }
     return (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : String(Math.floor(n))) + u[i];
   }
-  function cap(){ return 14 + 6 * S.up.bag; }
+  function cap(){ return 14 + 6 * S.up.bag + 4 * S.sk.bag; }
   function used(){ return S.inv.reduce(function(a,b){ return a + b; }, 0); }
   function need(l){ return Math.floor(30 * Math.pow(1.5, l - 1)); }
-  function rebM(){ return 1 + 0.5 * S.reb; }
-  function dmg(){ return PICKS[S.eq].dmg * (1 + 0.25 * S.up.pow) * (1 + 0.04 * (S.lvl - 1)) * rebM(); }
-  function luck(){ return PICKS[S.eq].luck + S.up.luck; }
-  function sellM(){ return (1 + 0.15 * S.up.sell) * rebM(); }
+  function rebM(){ return (1 + 0.5 * S.reb) * (1 + S.gr); }
+  function dmg(){ return PICKS[S.eq].dmg * (1 + 0.25 * S.up.pow) * (1 + 0.04 * (S.lvl - 1)) * rebM() * (S.bo.dmg > Date.now() ? 2 : 1) * (1 + 0.1 * S.sk.dmg); }
+  function luck(){ return PICKS[S.eq].luck + S.up.luck + (S.bo.luck > Date.now() ? 10 : 0) + 2 * S.sk.luck + (seasonId() === 2 ? 5 : 0); }
+  function sellM(){ return (1 + 0.15 * S.up.sell) * rebM() * (1 + 0.02 * S.ach.length) * (ev() === 'sell' ? 2 : 1) * (1 + 0.1 * zonesDone()) * (1 + 0.1 * S.sk.sell); }
+  function ev(){ var m = new Date().getMinutes(); return m < 10 ? 'sell' : (m >= 30 && m < 40 ? 'xp' : ''); }
+  function evTxt(){ var e = ev(), m = new Date().getMinutes(); return e ? (e === 'sell' ? '⭐ Золотой час: цена ×2' : '📘 Двойной опыт') + ' · ' + (e === 'sell' ? 10 - m : 40 - m) + ' мин' : ''; }
+  function petK(i){ return PETS[i].k * (1 + 0.5 * ((S.pl[i] || 1) - 1)) * (1 + 0.2 * S.sk.pet) * (1 + 0.5 * (S.ps[i] || 0)); }
   function critP(){ return 0.05 + 0.03 * S.up.crit; }
-  function value(i){ return ORES[i].v * ZONES[S.zone].v * sellM(); }
+  function value(i){ return ORES[i].v * ZONES[S.zone].v * sellM() * (seasonId() === 0 && i >= 4 ? 2 : 1); }
   function upCost(u){ return Math.floor(u.base * Math.pow(u.g, S.up[u.id])); }
 
   function rollOre(){
@@ -194,7 +220,7 @@ nav button.on{background:var(--bg);color:var(--text)}
     return 0;
   }
   var blk;
-  function newBlock(){ var i = rollOre(), h = ORES[i].hp * ZONES[S.zone].hp; blk = {i:i, hp:h, max:h}; }
+  function newBlock(b){ var i = rollOre(), bt = Math.floor(Math.random() * 3), h = ORES[i].hp * ZONES[S.zone].hp * (b ? (bt === 2 ? 6 : 12) : 1); blk = {i:i, hp:h, max:h, boss:!!b, bt:bt, t:b ? Date.now() + (bt === 2 ? 15000 : 30000) : 0, mut:b ? 1 : (Math.random() < 0.01 ? 10 : Math.random() < 0.06 ? 3 : 1)}; }
   newBlock();
 
   var $ = function(id){ return document.getElementById(id); };
@@ -204,10 +230,14 @@ nav button.on{background:var(--bg);color:var(--text)}
   function drawBlock(){
     var o = ORES[blk.i], r = blk.hp / blk.max;
     blockEl.style.setProperty('--ore', o.c);
+    blockEl.classList.toggle('boss', !!blk.boss);
+    blockEl.classList.toggle('mut3', blk.mut === 3);
+    blockEl.classList.toggle('mut10', blk.mut === 10);
+    blockEl.style.setProperty('--stone', SKINS[S.skin].c || '');
     blockEl.style.setProperty('--crack', String(1 - r));
     $('hp').style.transform = 'scaleX(' + Math.max(0, r) + ')';
-    $('orename').innerHTML = o.e + ' ' + o.n + '<span>$' + fmt(value(blk.i)) + '</span>';
-    $('zone').textContent = ZONES[S.zone].e + ' ' + ZONES[S.zone].n;
+    setH('orename', (blk.boss ? '👹 ' : blk.mut === 10 ? '🌈 ' : blk.mut === 3 ? '✨ ' : '') + o.e + ' ' + o.n + '<span>$' + fmt(value(blk.i)) + '</span>');
+    $('zone').textContent = blk.boss ? '👹 ' + BNAME[blk.bt] + ' · ' + Math.max(0, Math.ceil((blk.t - Date.now()) / 1000)) + ' с' : ZONES[S.zone].e + ' ' + ZONES[S.zone].n + (evTxt() ? ' · ' + evTxt() : '');
   }
   function drawHud(){
     $('money').textContent = '$' + fmt(S.money);
@@ -215,11 +245,11 @@ nav button.on{background:var(--bg);color:var(--text)}
     $('bagtxt').textContent = u + ' / ' + c;
     $('bagbar').style.width = Math.min(100, u / c * 100) + '%';
     $('sell').disabled = u === 0;
-    $('lvtxt').textContent = 'Ур. ' + S.lvl;
+    checkAch(); $('lvtxt').textContent = 'Ур. ' + S.lvl;
     $('snd').textContent = S.snd ? '🔊' : '🔇';
     $('gift').classList.toggle('dot', dailyCanClaim());
     $('xpbar').style.width = Math.min(100, S.xp / need(S.lvl) * 100) + '%';
-    $('mult').textContent = S.reb ? '×' + rebM().toFixed(1) : '';
+    $('mult').textContent = rebM() > 1 ? '×' + rebM().toFixed(1) : '';
     $('chips').innerHTML = ORES.map(function(o,i){
       return '<div class="chip' + (S.inv[i] ? '' : ' zero') + '"><span style="font-size:22px">' + o.e + '</span><div>' + S.inv[i] + '<small>$' + fmt(value(i)) + '</small></div></div>';
     }).join('');
@@ -246,7 +276,7 @@ nav button.on{background:var(--bg);color:var(--text)}
       if (S.pet === i) b = '<button class="btn eq" disabled>Работает</button>';
       else if (own) b = '<button class="btn" data-peq="' + i + '">Позвать</button>';
       else b = '<button class="btn" data-pbuy="' + i + '"' + (S.money < p.price ? ' disabled' : '') + '>$' + fmt(p.price) + '</button>';
-      return '<div class="card' + (S.pet === i ? ' on' : '') + '"><div class="ico">' + p.e + '</div><div class="info"><b>' + p.n + '</b><small>' + p.k + '× урона в секунду</small></div>' + b + '</div>';
+      return '<div class="card' + (S.pet === i ? ' on' : '') + '"><div class="ico">' + p.e + '</div><div class="info"><b>' + p.n + '</b><small>' + (Math.round(petK(i) * 10) / 10) + '× урона в секунду · ур. ' + (S.pl[i] || 1) + '</small>' + (own && (S.pl[i] || 1) < 10 ? '<br><button class="btn" style="margin-top:6px;padding:6px 10px" data-pup="' + i + '"' + (S.money < Math.floor(p.price * 0.6 * (S.pl[i] || 1)) ? ' disabled' : '') + '>Прокачать $' + fmt(Math.floor(p.price * 0.6 * (S.pl[i] || 1))) + '</button>' : '') + (own ? petMergeBtn(i) : '') + '</div>' + b + '</div>';
     }).join('');
   }
   function drawWorld(){
@@ -256,10 +286,11 @@ nav button.on{background:var(--bg);color:var(--text)}
       else b = '<button class="btn" data-zbuy="' + i + '"' + (i > S.zmax + 1 || S.money < z.price ? ' disabled' : '') + '>$' + fmt(z.price) + '</button>';
       return '<div class="card' + (S.zone === i ? ' on' : '') + '"><div class="ico">' + z.e + '</div><div class="info"><b>' + z.n + '</b><small>Руда ×' + z.v + ' · Блоки ×' + z.hp + '</small></div>' + b + '</div>';
     }).join('');
-    h += '<div class="card"><div class="ico">🔁</div><div class="info"><b>Перерождение · ' + S.reb + '</b><small>Нужен уровень ' + REB_LVL + ' (сейчас ' + S.lvl + '). Сбросит деньги, кирки, прокачку, зоны и уровень. Навсегда даст урон и цену ×' + (1 + 0.5 * (S.reb + 1)).toFixed(1) + '. Питомцы останутся.</small></div><button class="btn" data-reb="1"' + (S.lvl < REB_LVL ? ' disabled' : '') + '>' + (rbAsk ? 'Точно?' : 'Начать') + '</button></div>';
+    h += '<div class="card"><div class="ico">🔁</div><div class="info"><b>Перерождение · ' + S.reb + '</b><small>Нужен уровень ' + REB_LVL + ' (сейчас ' + S.lvl + '). Сбросит деньги, кирки, прокачку, зоны и уровень. Навсегда даст урон и цену ×' + ((1 + 0.5 * (S.reb + 1)) * (1 + S.gr)).toFixed(1) + '. Питомцы останутся.</small></div><button class="btn" data-reb="1"' + (S.lvl < REB_LVL ? ' disabled' : '') + '>' + (rbAsk ? 'Точно?' : 'Начать') + '</button></div>';
+    h += '<div class="card"><div class="ico">👑</div><div class="info"><b>Великое перерождение · ' + S.gr + '</b><small>Нужно 5 обычных перерождений (сейчас ' + S.reb + '). Сбросит и их, и навыки, и шахтёров. Навсегда даст урон и цену ×' + (2 + S.gr) + ' (сейчас ×' + (1 + S.gr) + ').</small></div><button class="btn" data-gr="1"' + (S.reb < 5 ? ' disabled' : '') + '>' + (grAsk ? 'Точно?' : 'Начать') + '</button></div>';
     $('v-world').innerHTML = h;
   }
-  function drawAll(){ drawHud(); drawBlock(); drawPicks(); drawUps(); drawPets(); drawWorld(); }
+  function drawAll(){ drawHud(); drawBlock(); drawPicks(); drawUps(); drawPets(); drawWorld(); drawGoals(); }
 
   function floatText(x, y, t){
     var f = document.createElement('div');
@@ -269,15 +300,18 @@ nav button.on{background:var(--bg);color:var(--text)}
   }
 
   function hit(d, pt, crit){
+    if (blk.bt === 1 && blk.boss && !crit) d *= 0.3;
     blk.hp -= d;
     if (pt) floatText(pt.x, pt.y, (crit ? 'КРИТ ' : '') + '-' + fmt(d));
     blockEl.classList.remove('hit'); void blockEl.offsetWidth; blockEl.classList.add('hit');
     if (blk.hp <= 0) {
-      S.inv[blk.i]++;
-      if (pt) { floatText(pt.x, pt.y - 26, ORES[blk.i].e); SFX.brk(); }
-      S.xp += (blk.i + 1) * (S.zone + 1) * 2;
+      S.inv[blk.i] += (blk.mut || 1); S.st.blocks++; idxAdd(); if (blk.i === 5) S.st.diamonds++; qAdd('blocks'); if (blk.boss) bossReward(); else if (Math.random() < 0.04) openChest();
+      if (Math.random() < 0.05 * S.en.dbl) S.inv[blk.i]++;
+      if (S.en.auto && used() >= cap()) autoSell();
+      if (pt) { floatText(pt.x, pt.y - 26, ORES[blk.i].e); burst(pt.x, pt.y, ORES[blk.i].e); SFX.brk(); }
+      S.xp += (blk.i + 1) * (S.zone + 1) * 2 * (ev() === 'xp' ? 2 : 1) * (blk.boss ? 5 : 1) * (1 + 0.1 * S.en.xpb) * (seasonId() === 1 ? 1.5 : 1);
       while (S.xp >= need(S.lvl)) { S.xp -= need(S.lvl); S.lvl++; toast('Новый уровень: ' + S.lvl); buzz('ok'); SFX.lvl(); }
-      newBlock(); drawHud(); save();
+      newBlock(bossDue()); if (blk.boss) toast('👹 Появился босс: ' + BNAME[blk.bt]); drawHud(); save();
     }
     drawBlock();
   }
@@ -286,6 +320,8 @@ nav button.on{background:var(--bg);color:var(--text)}
     e.preventDefault();
     if (used() >= cap()) { toast('Рюкзак полон: продай добычу'); SFX.err(); return; }
     var c = Math.random() < critP(), d = dmg() * (c ? 3 : 1);
+    if (c) { S.st.crits++; qAdd('crits'); }
+    if (d > S.st.maxHit) S.st.maxHit = d;
     buzz('tap'); (c ? SFX.crit : SFX.hit)();
     hit(d, {x:e.clientX, y:e.clientY}, c);
   });
@@ -293,21 +329,21 @@ nav button.on{background:var(--bg);color:var(--text)}
   setInterval(function(){
     if (S.pet < 0 || used() >= cap()) return;
     var r = blockEl.getBoundingClientRect();
-    hit(dmg() * PETS[S.pet].k, r.width ? {x:r.left + r.width / 2, y:r.top + r.height / 2} : null, false);
+    hit(dmg() * petK(S.pet), r.width ? {x:r.left + r.width / 2, y:r.top + r.height / 2} : null, false);
   }, 1000);
 
   $('sell').addEventListener('click', function(){
     var t = 0;
     for (var i = 0; i < ORES.length; i++) { t += S.inv[i] * value(i); S.inv[i] = 0; }
-    t = Math.floor(t); S.money += t;
+    t = Math.floor(t); S.money += t; S.st.earned += t; S.st.sells++; qAdd('sells');
     toast('Продано на $' + fmt(t)); buzz('ok'); SFX.sell(); drawAll(); save();
   });
 
-  var TABS = ['mine','picks','ups','pets','world'];
+  var TABS = ['mine','picks','ups','pets','world','goals'];
   document.addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b) return;
     var d = b.dataset, m0 = S.money;
-    if (d.tab) {
+    if (d.tab) { if (d.tab === 'goals') drawGoals();
       TABS.forEach(function(t){ $('v-' + t).hidden = t !== d.tab; });
       document.querySelectorAll('nav button').forEach(function(n){ n.classList.toggle('on', n === b); });
       return;
@@ -330,10 +366,231 @@ nav button.on{background:var(--bg);color:var(--text)}
       S.up = {pow:0,bag:0,luck:0,sell:0,crit:0}; S.zone = 0; S.zmax = 0; S.lvl = 1; S.xp = 0;
       newBlock(); toast('Перерождение! Бонус ×' + rebM().toFixed(1)); buzz('ok');
     }
+    else if (d.gt !== undefined) { goalTab = +d.gt; drawGoals(); return; }
+    else if (d.set !== undefined) {
+      if (d.set === 'snd') S.snd = !S.snd;
+      else if (d.set === 'vib') S.vib = S.vib === false;
+      else if (d.set === 'tut') { showTut(); return; }
+      else if (d.set === 'reset') {
+        if (!rstAsk) { rstAsk = true; setTimeout(function(){ rstAsk = false; drawGoals(); }, 4000); drawGoals(); return; }
+        noSave = true; try { localStorage.removeItem('miner-save2'); } catch(e){}
+        wipeCloud(function(){ location.reload(); }); return;
+      }
+    }
+    else if (d.pcopy !== undefined) { var pi2 = +d.pcopy, cp2 = S.pc[pi2] || 1, cc = Math.floor(PETS[pi2].price * 3 * cp2); if (S.money >= cc && cp2 < 3) { S.money -= cc; S.pc[pi2] = cp2 + 1; toast('Копия получена'); buzz('ok'); } }
+    else if (d.pmerge !== undefined) { var pm = +d.pmerge; if ((S.pc[pm] || 1) >= 3 && (S.ps[pm] || 0) < 3) { S.ps[pm] = (S.ps[pm] || 0) + 1; S.pc[pm] = 1; toast(PETS[pm].n + ' стал сильнее: ' + '⭐'.repeat(S.ps[pm])); SFX.lvl(); } }
+    else if (d.gr !== undefined) {
+      if (S.reb < 5) return;
+      if (!grAsk) { grAsk = true; setTimeout(function(){ grAsk = false; drawWorld(); }, 4000); drawWorld(); return; }
+      grAsk = false; S.gr++; S.reb = 0; S.sk = {dmg:0,sell:0,luck:0,bag:0,pet:0}; S.hm = [0,0,0]; S.money = 0; S.inv = [0,0,0,0,0,0]; S.owned = [0]; S.eq = 0;
+      S.up = {pow:0,bag:0,luck:0,sell:0,crit:0}; S.zone = 0; S.zmax = 0; S.lvl = 1; S.xp = 0; newBlock(); toast('Великое перерождение! Бонус ×' + (1 + S.gr)); buzz('ok'); SFX.lvl();
+    }
+    else if (d.spin !== undefined) { if (S.wheel !== ymd(new Date())) { S.wheel = ymd(new Date()); spinWheel(); } }
+    else if (d.sk !== undefined) { if (S.reb - skSpent() >= 1 && (S.sk[d.sk] || 0) < 10) { S.sk[d.sk] = (S.sk[d.sk] || 0) + 1; toast('Навык улучшен'); buzz('ok'); SFX.buy(); } }
+    else if (d.en !== undefined) { var ec = ENCH.filter(function(x){ return x.id === d.en; })[0], el = S.en[ec.id] || 0, eco = Math.floor(ec.base * Math.pow(3, el)); if (el < ec.max && S.money >= eco) { S.money -= eco; S.en[ec.id] = el + 1; toast(ec.n + ': уровень ' + (el + 1)); buzz('ok'); } }
+    else if (d.hire !== undefined) { var hi = +d.hire, hn = S.hm[hi] || 0, hc = Math.floor(HIRE[hi].price * Math.pow(1.25, hn)); if (S.money >= hc) { S.money -= hc; S.hm[hi] = hn + 1; toast(HIRE[hi].n + ' нанят'); buzz('ok'); } }
+    else if (d.pup !== undefined) { var pi = +d.pup, lv = S.pl[pi] || 1, pc = Math.floor(PETS[pi].price * 0.6 * lv); if (lv < 10 && S.money >= pc) { S.money -= pc; S.pl[pi] = lv + 1; toast(PETS[pi].n + ': уровень ' + (lv + 1)); buzz('ok'); } }
+    else if (d.craft !== undefined) { var rc = RECIPES[+d.craft]; if (rc.cost.every(function(c){ return S.inv[c[0]] >= c[1]; })) { rc.cost.forEach(function(c){ S.inv[c[0]] -= c[1]; }); S.bo[rc.id] = Math.max(S.bo[rc.id], Date.now()) + 300000; toast(rc.n + ' действует 5 мин.'); SFX.buy(); } }
+    else if (d.skin !== undefined) { if (S.ach.length >= SKINS[+d.skin].req) S.skin = +d.skin; }
+    else if (d.share !== undefined) { shareApp(); return; }
+    else if (d.q !== undefined) {
+      var qq = S.q.list[+d.q];
+      if (qq && qq.got >= qq.need && !qq.c) { qq.c = 1; var rw = Math.floor(dailyUnit() * 2.5); S.money += rw; S.st.quests++; toast('Награда: $' + fmt(rw)); SFX.sell(); }
+    }
     else return;
     if (S.money < m0) SFX.buy();
     drawAll(); save();
   });
+
+  var ACH = [
+    {n:'Первые сотни',d:'Разбей 100 блоков',f:function(){ return S.st.blocks >= 100; }},
+    {n:'Горняк',d:'Разбей 1 000 блоков',f:function(){ return S.st.blocks >= 1000; }},
+    {n:'Легенда шахты',d:'Разбей 10 000 блоков',f:function(){ return S.st.blocks >= 10000; }},
+    {n:'Блеск',d:'Добудь алмаз',f:function(){ return S.st.diamonds >= 1; }},
+    {n:'Алмазная лихорадка',d:'Добудь 25 алмазов',f:function(){ return S.st.diamonds >= 25; }},
+    {n:'Точный удар',d:'Нанеси 50 критов',f:function(){ return S.st.crits >= 50; }},
+    {n:'Опытный',d:'Достигни 10 уровня',f:function(){ return S.st.maxLvl >= 10; }},
+    {n:'Ветеран',d:'Достигни 30 уровня',f:function(){ return S.st.maxLvl >= 30; }},
+    {n:'Спелеолог',d:'Открой 4-ю зону',f:function(){ return S.st.maxZone >= 3; }},
+    {n:'До самого ядра',d:'Открой все зоны',f:function(){ return S.st.maxZone >= ZONES.length - 1; }},
+    {n:'Новая жизнь',d:'Переродись',f:function(){ return S.reb >= 1; }},
+    {n:'Зоопарк',d:'Собери всех питомцев',f:function(){ return S.pets.length >= PETS.length; }},
+    {n:'Трудяга',d:'Выполни 10 заданий',f:function(){ return S.st.quests >= 10; }}
+  ];
+  function checkAch(){
+    S.st.maxLvl = Math.max(S.st.maxLvl, S.lvl); S.st.maxZone = Math.max(S.st.maxZone, S.zmax);
+    ACH.forEach(function(a,i){
+      if (S.ach.indexOf(i) < 0 && a.f()) { S.ach.push(i); toast('Достижение: ' + a.n + ' (+2% к цене)'); SFX.lvl(); }
+    });
+  }
+  function ensureQ(){
+    var t = ymd(new Date());
+    if (S.q.date !== t) S.q = {date:t, list:[{k:'blocks',need:60,got:0,c:0},{k:'crits',need:15,got:0,c:0},{k:'sells',need:4,got:0,c:0}]};
+  }
+  function qAdd(k){ ensureQ(); S.q.list.forEach(function(q){ if (q.k === k) q.got = Math.min(q.need, q.got + 1); }); }
+  function drawGoals(){
+    ensureQ();
+    var QN = {blocks:'Разбей блоков', crits:'Нанеси критов', sells:'Продай добычу раз'}, st = S.st, rw = Math.floor(dailyUnit() * 2.5);
+    var nm = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'Ты';
+    var h = '<div class="sec">Задания дня</div>' + S.q.list.map(function(q,i){
+      var ready = q.got >= q.need && !q.c;
+      return '<div class="card"><div class="info"><b>' + QN[q.k] + ': ' + q.need + '</b><small>' + q.got + ' / ' + q.need + (q.c ? ' · получено' : ' · награда $' + fmt(rw)) + '</small><div class="bar2"><i style="width:' + (q.got / q.need * 100) + '%"></i></div></div><button class="btn" data-q="' + i + '"' + (ready ? '' : ' disabled') + '>' + (q.c ? '✓' : 'Забрать') + '</button></div>';
+    }).join('');
+    var wd = S.wheel !== ymd(new Date());
+    h += '<div class="sec">Колесо удачи</div><div class="card"><div class="ico">🎡</div><div class="info"><b>Бесплатный спин раз в день</b><small>Деньги, опыт, зелья или джекпот</small></div><button class="btn" data-spin="1"' + (wd ? '' : ' disabled') + '>' + (wd ? 'Крутить' : 'Завтра') + '</button></div>';
+    h += '<div class="sec">Индекс руд · +' + zonesDone() * 10 + '% к цене</div><p class="note">Найди все 6 руд в зоне: +10% к цене навсегда.</p>' + ZONES.map(function(z,zi){
+      return '<div class="card' + (zoneDone(zi) ? ' on' : '') + '"><div class="ico">' + z.e + '</div><div class="info"><b>' + z.n + '</b><small>' + ORES.map(function(o,oi){ return S.idx.indexOf(zi * 6 + oi) >= 0 ? o.e : '❔'; }).join(' ') + '</small></div></div>';
+    }).join('');
+    var sp = S.reb - skSpent();
+    h += '<div class="sec">Навыки · очков ' + sp + '</div><p class="note">Очко даёт каждое перерождение. Навыки не сбрасываются.</p>' + SKILLS.map(function(k){
+      var l = S.sk[k.id] || 0;
+      return '<div class="card"><div class="info"><b>' + k.n + ' · ур. ' + l + '</b><small>' + k.d + '</small></div><button class="btn" data-sk="' + k.id + '"' + (sp < 1 || l >= 10 ? ' disabled' : '') + '>' + (l >= 10 ? 'Макс' : '1 очко') + '</button></div>';
+    }).join('');
+    h += '<div class="sec">Зачарования</div>' + ENCH.map(function(e){
+      var l = S.en[e.id] || 0, c = Math.floor(e.base * Math.pow(3, l));
+      return '<div class="card"><div class="info"><b>' + e.n + ' · ур. ' + l + '</b><small>' + e.d + '</small></div><button class="btn" data-en="' + e.id + '"' + (l >= e.max || S.money < c ? ' disabled' : '') + '>' + (l >= e.max ? 'Макс' : '$' + fmt(c)) + '</button></div>';
+    }).join('');
+    h += '<div class="sec">Шахтёры · +$' + fmt(mps()) + '/с</div><p class="note">Работают сами, оффлайн приносят половину дохода.</p>' + HIRE.map(function(e,i){
+      var n = S.hm[i] || 0, c = Math.floor(e.price * Math.pow(1.25, n));
+      return '<div class="card"><div class="ico">' + e.e + '</div><div class="info"><b>' + e.n + ' × ' + n + '</b><small>Доход растёт с силой кирки</small></div><button class="btn" data-hire="' + i + '"' + (S.money < c ? ' disabled' : '') + '>$' + fmt(c) + '</button></div>';
+    }).join('');
+    h += '<div class="sec">Крафт</div>' + RECIPES.map(function(r,i){
+      var can = r.cost.every(function(c){ return S.inv[c[0]] >= c[1]; }), left = Math.ceil((S.bo[r.id] - Date.now()) / 60000);
+      return '<div class="card"><div class="ico">' + r.e + '</div><div class="info"><b>' + r.n + '</b><small>' + r.d + (left > 0 ? ' · осталось ' + left + ' мин.' : '') + '<br>Нужно: ' + r.cost.map(function(c){ return ORES[c[0]].e + '×' + c[1]; }).join(' ') + '</small></div><button class="btn" data-craft="' + i + '"' + (can ? '' : ' disabled') + '>Создать</button></div>';
+    }).join('');
+    h += '<div class="sec">Вид блока</div><div class="card" style="flex-wrap:wrap">' + SKINS.map(function(k,i){
+      var ok = S.ach.length >= k.req;
+      return '<button class="btn' + (S.skin === i ? ' eq' : '') + '" data-skin="' + i + '"' + (ok ? '' : ' disabled') + '>' + (ok ? k.n : '🔒 ' + k.req + ' дост.') + '</button>';
+    }).join('') + '</div>';
+    h += '<div class="sec">Друзья</div><div class="card"><div class="info"><b>Позови друга</b><small>Друг получит стартовый бонус по твоей ссылке.</small></div><button class="btn" data-share="1">Отправить</button></div>';
+    h += '<div class="sec">Достижения · ' + S.ach.length + ' / ' + ACH.length + '</div><p class="note">Каждое навсегда даёт +2% к цене.</p>' + ACH.map(function(a,i){
+      var dn = S.ach.indexOf(i) >= 0;
+      return '<div class="card' + (dn ? ' on' : '') + '"><div class="ico">' + (dn ? '🏆' : '🔒') + '</div><div class="info"><b>' + a.n + '</b><small>' + a.d + '</small></div></div>';
+    }).join('');
+    h += '<div class="sec">Мои рекорды</div><div class="card"><div class="info"><b>' + nm + '</b><small>Уровень ' + st.maxLvl + ' · блоков ' + st.blocks + ' · перерождений ' + S.reb + '<br>Лучший удар ' + fmt(st.maxHit) + ' · заработано $' + fmt(st.earned) + '</small></div></div>';
+    h += '<div class="sec">Сезон</div><div class="card"><div class="info"><b>' + SEAS[seasonId()] + '</b><small>Меняется каждую неделю</small></div></div>';
+    h += '<div class="sec">Настройки</div>' + [['Звук', S.snd ? 'Вкл' : 'Выкл', 'snd'], ['Вибрация', S.vib === false ? 'Выкл' : 'Вкл', 'vib'], ['Обучение', 'Показать', 'tut'], ['Прогресс', rstAsk ? 'Точно?' : 'Сбросить', 'reset']].map(function(r){
+      return '<div class="card"><div class="info"><b>' + r[0] + '</b></div><button class="btn" data-set="' + r[2] + '">' + r[1] + '</button></div>';
+    }).join('') + '<p class="note">Прогресс хранится в облаке Telegram и на устройстве.</p>';
+    var GT = ['Задания','Прокачка','Коллекции','Настройки'], G = {'Задания':0,'Колесо':0,'Друзья':0,'Сезон':0,'Навыки':1,'Зачарования':1,'Шахтёры':1,'Крафт':1,'Индекс':2,'Вид':2,'Достижения':2,'Мои':2,'Настройки':3}, out = ['','','',''];
+    h.split('<div class="sec">').forEach(function(p){ if (!p) return; out[G[p.split(/[ ·<]/)[0]]] += '<div class="sec">' + p; });
+    $('v-goals').innerHTML = '<div style="display:flex;gap:6px;margin-bottom:6px">' + GT.map(function(n,i){ return '<button class="btn' + (goalTab === i ? ' eq' : '') + '" style="flex:1;padding:8px 2px;font-size:13px" data-gt="' + i + '">' + n + '</button>'; }).join('') + '</div>' + out[goalTab];
+  }
+
+  var BNAME = ['Регенерация', 'Щит: бей критами', 'Спешка'];
+  var SEAS = ['❄️ Ледяная неделя: аметисты и алмазы ×2 к цене', '🔥 Огненная неделя: опыт ×1.5', '🍀 Неделя удачи: +5 к удаче'];
+  function seasonId(){ return Math.floor(Date.now() / 6048e5) % 3; }
+  function bossDue(){ if (S.st.blocks - bossBlk >= 25 && Date.now() - bossT > 90000) { bossBlk = S.st.blocks; bossT = Date.now(); return true; } return false; }
+  function setH(id, h){ var e = $(id); if (e._h !== h) { e._h = h; e.innerHTML = h; } }
+  function burst(x, y, em){
+    for (var i = 0; i < 6; i++) {
+      var a = Math.random() * 6.28, r = 30 + Math.random() * 40, f = document.createElement('div');
+      f.className = 'pt'; f.textContent = em; f.style.left = x + 'px'; f.style.top = y + 'px';
+      f.style.setProperty('--dx', Math.cos(a) * r + 'px'); f.style.setProperty('--dy', Math.sin(a) * r + 'px');
+      document.body.appendChild(f); setTimeout(function(n){ return function(){ n.remove(); }; }(f), 620);
+    }
+  }
+  function petMergeBtn(i){
+    var st = S.ps[i] || 0, cp = S.pc[i] || 1, c = Math.floor(PETS[i].price * 3 * cp), bs = '<br><button class="btn" style="margin-top:6px;padding:6px 10px" ';
+    if (st >= 3) return '<br><small>⭐⭐⭐ максимум</small>';
+    if (cp >= 3) return bs + 'data-pmerge="' + i + '">Слить 3 → ' + '⭐'.repeat(st + 1) + '</button>';
+    return bs + 'data-pcopy="' + i + '"' + (S.money < c ? ' disabled' : '') + '>Копия ' + cp + '/3 · $' + fmt(c) + '</button>';
+  }
+  function showTut(cb){
+    modal('Как играть', '<p class="note" style="text-align:left;font-size:15px;line-height:1.6">⛏️ Тапай по блоку, чтобы добыть руду.<br>💰 Продавай добычу и покупай кирки.<br>🐾 Питомцы и шахтёры работают сами.<br>👹 Каждый 25-й блок: босс.<br>🎁 Заходи каждый день за наградами.</p>', 'Поехали', cb || null);
+  }
+  function cloudSave(){
+    if (!tg || !tg.CloudStorage) return;
+    try {
+      var j = JSON.stringify(S), n = Math.ceil(j.length / 3000);
+      for (var i = 0; i < n; i++) tg.CloudStorage.setItem('m' + i, j.slice(i * 3000, (i + 1) * 3000));
+      tg.CloudStorage.setItem('mn', String(n));
+    } catch(e){}
+  }
+  function cloudLoad(){
+    if (!tg || !tg.CloudStorage) return;
+    try {
+      tg.CloudStorage.getItem('mn', function(err, n){
+        n = +n; if (err || !n) return;
+        var keys = []; for (var i = 0; i < n; i++) keys.push('m' + i);
+        tg.CloudStorage.getItems(keys, function(e2, o){
+          if (e2 || !o) return;
+          var j = keys.map(function(k){ return o[k] || ''; }).join('');
+          try { var c = JSON.parse(j); if (c && (c.last || 0) > (S.last || 0)) { noSave = true; localStorage.setItem('miner-save2', j); location.reload(); } } catch(x){}
+        });
+      });
+    } catch(e){}
+  }
+  function wipeCloud(cb){
+    var done = false, f = function(){ if (!done) { done = true; cb(); } };
+    setTimeout(f, 2500);
+    try { if (tg && tg.CloudStorage) tg.CloudStorage.setItem('mn', '0', f); else f(); } catch(e){ f(); }
+  }
+  var SKILLS = [
+    {id:'dmg',n:'Сила шахтёра',d:'+10% к урону за уровень'},{id:'sell',n:'Торговец',d:'+10% к цене'},
+    {id:'luck',n:'Чутьё',d:'+2 к удаче'},{id:'bag',n:'Вместительность',d:'+4 места в рюкзаке'},
+    {id:'pet',n:'Дрессировщик',d:'+20% к силе питомцев'}
+  ];
+  var ENCH = [
+    {id:'dbl',n:'Двойная добыча',d:'+5% шанс лишнего предмета за уровень',base:5000,max:10},
+    {id:'xpb',n:'Мудрость',d:'+10% к опыту за уровень',base:8000,max:10},
+    {id:'auto',n:'Авто-продажа',d:'Рюкзак продаётся сам: 70% / 85% / 100% цены',base:50000,max:3}
+  ];
+  var HIRE = [
+    {n:'Подмастерье',e:'👷',k:0.2,price:8000},{n:'Бригадир',e:'🧑‍🏭',k:1,price:400000},{n:'Горная машина',e:'🚜',k:5,price:2e7}
+  ];
+  function idxAdd(){
+    var k = S.zone * 6 + blk.i;
+    if (S.idx.indexOf(k) < 0) { S.idx.push(k); if (zoneDone(S.zone)) toast('Индекс: зона «' + ZONES[S.zone].n + '» собрана, +10% к цене'); }
+  }
+  function zoneDone(z){ for (var i = 0; i < 6; i++) if (S.idx.indexOf(z * 6 + i) < 0) return false; return true; }
+  function zonesDone(){ var n = 0; for (var z = 0; z < ZONES.length; z++) if (zoneDone(z)) n++; return n; }
+  function skSpent(){ var n = 0; for (var k in S.sk) n += S.sk[k]; return n; }
+  function mps(){ var n = 0; HIRE.forEach(function(h,i){ n += (S.hm[i] || 0) * h.k; }); return n * dmg() * 0.5; }
+  function autoSell(){
+    var t = 0;
+    for (var i = 0; i < ORES.length; i++) { t += S.inv[i] * value(i); S.inv[i] = 0; }
+    t = Math.floor(t * (0.55 + 0.15 * S.en.auto)); S.money += t; S.st.earned += t;
+    toast('Авто-продажа: $' + fmt(t)); SFX.sell();
+  }
+  function spinWheel(){
+    var u = dailyUnit(), r = Math.random() * 100, t, v;
+    if (r < 30) { v = u * 2; S.money += v; t = '$' + fmt(v); }
+    else if (r < 50) { v = u * 8; S.money += v; t = '$' + fmt(v); }
+    else if (r < 65) { v = (S.zone + 1) * 150; S.xp += v; t = fmt(v) + ' опыта'; }
+    else if (r < 77) { S.bo.dmg = Math.max(S.bo.dmg, Date.now()) + 600000; t = 'зелье силы на 10 мин.'; }
+    else if (r < 89) { S.bo.luck = Math.max(S.bo.luck, Date.now()) + 600000; t = 'зелье удачи на 10 мин.'; }
+    else if (r < 97) { v = u * 15; S.money += v; t = '$' + fmt(v) + ' (супер!)'; }
+    else { v = u * 60; S.money += v; t = 'ДЖЕКПОТ $' + fmt(v); }
+    while (S.xp >= need(S.lvl)) { S.xp -= need(S.lvl); S.lvl++; }
+    modal('Колесо удачи', '<p style="font-size:44px;margin:4px 0">🎁</p><p style="font-weight:800;font-size:20px;margin:0 0 16px">' + t + '</p>', 'Класс', null);
+    SFX.lvl(); save();
+  }
+  setInterval(function(){ var m = mps(); if (m > 0) { S.money += m; $('money').textContent = '$' + fmt(S.money); } }, 1000);
+  var SKINS = [{n:'Серый',c:null,req:0},{n:'Лава',c:'#B5532F',req:3},{n:'Лёд',c:'#6FA8C9',req:6},{n:'Нефрит',c:'#4E8F6B',req:9},{n:'Золото',c:'#C7A24A',req:12}];
+  var RECIPES = [
+    {id:'dmg',n:'Зелье силы',e:'🧪',d:'×2 урона на 5 мин.',cost:[[2,15],[3,5]]},
+    {id:'luck',n:'Зелье удачи',e:'🍀',d:'+10 удачи на 5 мин.',cost:[[4,3],[5,1]]}
+  ];
+  function openChest(big){
+    var r = Math.random(), u = dailyUnit(), msg;
+    if (big || r < 0.5) { var g = Math.floor(u * (big ? 6 : 1 + Math.random() * 3)); S.money += g; msg = '$' + fmt(g); }
+    else if (r < 0.8) { var x = (S.zone + 1) * 80; S.xp += x; msg = fmt(x) + ' опыта'; }
+    else { var k = Math.random() < 0.5 ? 'dmg' : 'luck'; S.bo[k] = Math.max(S.bo[k], Date.now()) + 120000; msg = k === 'dmg' ? 'зелье силы на 2 мин.' : 'зелье удачи на 2 мин.'; }
+    toast('📦 Сундук: ' + msg); SFX.sell(); buzz('ok');
+  }
+  function bossReward(){ S.inv[blk.i] += 4; openChest(true); if (blk.bt === 2) openChest(true); }
+  function shareApp(){
+    var link = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/kb_miner_game_bot/miner?startapp=ref') + '&text=' + encodeURIComponent('Играй со мной в Шахтёра!');
+    try { if (tg && tg.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank'); } catch(e){}
+  }
+  var tickN = 0;
+  setInterval(function(){
+    if (blk.boss && blk.bt === 0) blk.hp = Math.min(blk.max, blk.hp + blk.max * 0.01);
+    if (blk.boss && Date.now() > blk.t) { toast('Босс ушёл'); newBlock(); }
+    drawBlock();
+    if (++tickN % 40 === 0) drawHud();
+  }, 500);
 
   var modalCb = null;
   function modal(title, html, btn, cb){
@@ -365,22 +622,23 @@ nav button.on{background:var(--bg);color:var(--text)}
 
   function offline(){
     var sec = S.last ? Math.min((Date.now() - S.last) / 1000, 7200) : 0;
-    if (S.pet < 0 || sec < 60) return false;
+    if (sec < 60 || (S.pet < 0 && !mps())) return false;
     var L = luck(), z = S.zone, sw = 0, hp = 0, val = 0;
     ORES.forEach(function(o,i){ var w = o.w * (1 + 0.2 * L * i) * (1 + 0.6 * z * i); sw += w; hp += w * o.hp; val += w * value(i); });
     hp = hp / sw * ZONES[z].hp; val /= sw;
-    var gain = Math.floor(sec * dmg() * PETS[S.pet].k / hp * val * 0.5);
+    var gain = Math.floor((S.pet >= 0 ? sec * dmg() * petK(S.pet) / hp * val * 0.5 : 0) + mps() * sec * 0.5);
     if (gain < 1) return false;
-    modal('Пока тебя не было', '<p style="font-size:44px;margin:4px 0">' + PETS[S.pet].e + '</p><p class="note">' + PETS[S.pet].n + ' копал ' + Math.round(sec / 60) + ' мин. и продал добычу за половину цены (не больше 2 часов).</p><p style="font-weight:800;font-size:26px;margin:0 0 16px">$' + fmt(gain) + '</p>', 'Забрать', function(){
+    modal('Пока тебя не было', '<p style="font-size:44px;margin:4px 0">' + (S.pet >= 0 ? PETS[S.pet].e : '⛏️') + '</p><p class="note">' + (S.pet >= 0 ? PETS[S.pet].n : 'Шахтёры') + ' копал ' + Math.round(sec / 60) + ' мин. и продал добычу за половину цены (не больше 2 часов).</p><p style="font-weight:800;font-size:26px;margin:0 0 16px">$' + fmt(gain) + '</p>', 'Забрать', function(){
       S.money += gain; SFX.sell(); drawAll(); save(); autoDaily();
     });
     return true;
   }
   function autoDaily(){ if (dailyCanClaim()) showDaily(); }
-  function startup(){ if (!$('modal').hidden) return; if (!offline()) autoDaily(); }
-  document.addEventListener('visibilitychange', function(){ if (document.hidden) save(); else startup(); });
+  function startup(){ if (!$('modal').hidden) return; if (!S.tut) { S.tut = 1; showTut(function(){ autoDaily(); }); return; } if (!offline()) autoDaily(); }
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) { lastCloud = 0; save(); } else startup(); });
 
-  drawAll(); startup();
+  try { if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param === 'ref' && !S.refGot) { S.refGot = true; S.money += dailyUnit() * 20; save(); toast('Бонус за приглашение!'); } } catch(e){}
+  drawAll(); startup(); cloudLoad();
 })();
 </script>
 </body>
